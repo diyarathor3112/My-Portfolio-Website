@@ -14,3 +14,6 @@ npm create vite@latest 3d-portfolio -- --template react(to create a 3D-portfolio
 cd 3d-portfolio  (open the folder)
 npm install three @react-three/fiber @react-three/drei @react-three/rapier(download Three.js for the project inside the folder)
 npm warn EBADENGINE Unsupported engine if this warning occurs, this means the version is outdated but does not harm any functionality of the code still works perfectly
+after writing the code @App.jsx we need to run npm run dev
+http://localhost:5173 we will see the portfolio in this 
+
