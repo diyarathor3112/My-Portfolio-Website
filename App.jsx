@@ -1,11 +1,12 @@
-import React, { useMemo, useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Float, Stars, Environment, Html } from "@react-three/drei";
+import { OrbitControls, Float, Stars, Environment, useGLTF, useAnimations, Sparkles } from "@react-three/drei";
 import { motion } from "framer-motion";
-import { Github, Mail, MapPin, ExternalLink, Menu, X, Linkedin } from "lucide-react";
+import { Github, Mail, MapPin, ExternalLink, Menu, X } from "lucide-react";
+import "./App.css";
 
 // ----------------------
-// Site Data (edit here)
+// Site Data
 // ----------------------
 const PROFILE = {
   name: "Diya Rathor",
@@ -15,28 +16,8 @@ const PROFILE = {
   github: "https://github.com/diyarathor3112",
   leetcode: "https://leetcode.com/u/Diya_rathor/",
   about:
-    "B.Tech CSE student (Graphic Era Hill University, GPA 9.02) passionate about full‑stack development, interactive 3D web, and applied AI. I love turning ideas into polished, performant experiences.",
+    "B.Tech CSE student passionate about full‑stack development, interactive 3D web, and applied AI. I love turning ideas into polished, performant experiences.",
 };
-
-
-
-const EDUCATION = [
-  {
-    school: "Graphic Era Hill University",
-    span: "Jul 2022 – Jul 2026",
-    details: "B.Tech in Computer Science | GPA: 9.02",
-  },
-  {
-    school: "Mohan Lal Sah Bal Vidya Mandir",
-    span: "Mar 2021 – Mar 2022",
-    details: "Intermediate: 87%",
-  },
-  {
-    school: "Mohan Lal Sah Bal Vidya Mandir",
-    span: "Mar 2019 – Mar 2020",
-    details: "Matriculation: 80.16%",
-  },
-];
 
 const PROJECTS = [
   {
@@ -74,20 +55,6 @@ const PROJECTS = [
   },
 ];
 
-const SKILLS = {
-  languages: ["Python", "Java", "C/C++", "HTML", "CSS", "JavaScript"],
-  frameworks: ["React", "Express", "Linux", "GCP", "AWS"],
-  ml: ["NumPy", "Matplotlib", "Seaborn", "Pandas"],
-  db: ["MongoDB", "MySQL", "PostgreSQL"],
-};
-
-const COURSEWORK = [
-  "Prompt Engineering (AWS Skill Builder)",
-  "Google Cloud Computing (IIT Kharagpur, NPTEL)",
-  "Artificial Intelligence (Udemy)",
-  "Data Structures, OOP, Algorithms, OS, CN, AI, Cryptography",
-];
-
 const LEADERSHIP = [
   "HackOn With Amazon S4 – Participant",
   "Placement Committee Head – University resume screening & registrations",
@@ -97,22 +64,52 @@ const LEADERSHIP = [
   "Award‑Winning Speaker – 10+ awards in public speaking & debates",
 ];
 
+const SKILLS = {
+  languages: ["Python", "Java", "C/C++", "HTML", "CSS", "JavaScript"],
+  frameworks: ["React", "Express", "Linux", "GCP", "AWS"],
+  ml: ["NumPy", "Matplotlib", "Seaborn", "Pandas"],
+  db: ["MongoDB", "MySQL", "PostgreSQL"],
+};
+
+const EDUCATION = [
+  {
+    school: "Graphic Era Hill University",
+    span: "Jul 2022 – Jul 2026",
+    details: "B.Tech in Computer Science | GPA: 9.02",
+  },
+  {
+    school: "Mohan Lal Sah Bal Vidya Mandir",
+    span: "Mar 2021 – Mar 2022",
+    details: "Intermediate: 87%",
+  },
+  {
+    school: "Mohan Lal Sah Bal Vidya Mandir",
+    span: "Mar 2019 – Mar 2020",
+    details: "Matriculation: 80.16%",
+  },
+];
+
+const COURSEWORK = [
+  "Prompt Engineering (AWS Skill Builder)",
+  "Google Cloud Computing (IIT Kharagpur, NPTEL)",
+  "Artificial Intelligence (Udemy)",
+  "Data Structures, OOP, Algorithms, OS, CN, AI, Cryptography",
+];
+
 // ----------------------
-// 3D Scene
+// 3D Hero Components
 // ----------------------
 function TwistingTorus({ speed = 0.4, color = "#6ee7b7" }) {
   const mesh = useRef();
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
-    if (mesh.current) {
-      mesh.current.rotation.x = t * speed;
-      mesh.current.rotation.y = t * speed * 1.2;
-      mesh.current.position.y = Math.sin(t * 0.8) * 0.3;
-    }
+    mesh.current.rotation.x = t * speed;
+    mesh.current.rotation.y = t * speed * 1.2;
+    mesh.current.position.y = Math.sin(t * 0.8) * 0.3;
   });
   return (
     <Float speed={1.5} rotationIntensity={0.5} floatIntensity={0.8}>
-      <mesh ref={mesh} castShadow receiveShadow>
+      <mesh ref={mesh}>
         <torusKnotGeometry args={[1, 0.3, 180, 16]} />
         <meshStandardMaterial metalness={0.5} roughness={0.2} color={color} />
       </mesh>
@@ -124,11 +121,9 @@ function Bubble({ seed = 0 }) {
   const mesh = useRef();
   useFrame((state) => {
     const t = state.clock.getElapsedTime() + seed;
-    if (mesh.current) {
-      mesh.current.position.x = Math.sin(t * 0.6) * 3;
-      mesh.current.position.y = Math.cos(t * 0.4) * 1.2 + 0.2;
-      mesh.current.position.z = Math.cos(t * 0.3) * 2;
-    }
+    mesh.current.position.x = Math.sin(t * 0.6) * 3;
+    mesh.current.position.y = Math.cos(t * 0.4) * 1.2 + 0.2;
+    mesh.current.position.z = Math.cos(t * 0.3) * 2;
   });
   return (
     <Float>
@@ -158,6 +153,56 @@ function ThreeHero() {
   );
 }
 
+// --- Rubik Cube ---
+function InteractiveRubikCube({ activeFace = 0 }) {
+  const mesh = useRef();
+  const [hoverFace, setHoverFace] = useState(activeFace);
+
+  useFrame((state) => {
+    if (!mesh.current) return; // ✅ prevent crash before mesh mount
+    const t = state.clock.getElapsedTime();
+    mesh.current.rotation.x = t * 0.5 + hoverFace * 0.15;
+    mesh.current.rotation.y = t * 0.5 + hoverFace * 0.15;
+  });
+
+  return (
+    <mesh
+      ref={mesh}
+      onPointerOver={() => setHoverFace((f) => (f + 1) % 6)}
+      onPointerOut={() => setHoverFace(activeFace)}
+    >
+      <boxGeometry args={[2.5, 2.5, 2.5]} />
+      <meshStandardMaterial color={hoverFace === 0 ? "#10B981" : "#3B82F6"} />
+      <Sparkles count={50} size={0.1} scale={[1.5, 1.5, 1.5]} />
+    </mesh>
+  );
+}
+
+// --- Simple Walking Man (Placeholder) ---
+
+function SimpleWalkingMan({ scrollProgress = 0 }) {
+  const mesh = useRef();
+
+  useFrame((state) => {
+    if (!mesh.current) return;
+    const t = state.clock.getElapsedTime();
+    mesh.current.rotation.x = t * 0.5;
+    mesh.current.rotation.y = t * 0.3;
+    mesh.current.position.y = scrollProgress * 5;
+    mesh.current.position.z = Math.sin(scrollProgress * Math.PI) * 2;
+  });
+
+  return (
+    <Float speed={1.2} rotationIntensity={0.3} floatIntensity={0.5}>
+      <mesh ref={mesh}>
+        <capsuleGeometry args={[0.5, 1.5, 4, 8]} />
+        <meshStandardMaterial color="#10B981" metalness={0.3} roughness={0.4} />
+      </mesh>
+    </Float>
+  );
+}
+
+
 // ----------------------
 // UI Helpers
 // ----------------------
@@ -179,9 +224,7 @@ const Section = ({ id, title, children, className = "" }) => (
 );
 
 const Chip = ({ children }) => (
-  <span className="inline-flex items-center rounded-2xl border px-3 py-1 text-sm">
-    {children}
-  </span>
+  <span className="inline-flex items-center rounded-2xl border px-3 py-1 text-sm">{children}</span>
 );
 
 function useScrollLock(open) {
@@ -191,11 +234,24 @@ function useScrollLock(open) {
 }
 
 // ----------------------
-// Main App
+// Main Portfolio App
 // ----------------------
 export default function PortfolioApp() {
   const [menuOpen, setMenuOpen] = useState(false);
   useScrollLock(menuOpen);
+
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const top = document.getElementById("leadership")?.getBoundingClientRect().top ?? 0;
+      const height = window.innerHeight;
+      const progress = Math.min(Math.max(0, 1 - top / height), 1);
+      setScrollProgress(progress);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const nav = [
     { id: "home", label: "Home" },
@@ -263,7 +319,6 @@ export default function PortfolioApp() {
           </div>
         )}
       </header>
-      
 
       {/* HERO */}
       <section id="home" className="relative overflow-hidden">
@@ -286,47 +341,23 @@ export default function PortfolioApp() {
             >
               {PROFILE.title} — {PROFILE.about}
             </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.2 }}
-              className="flex flex-wrap items-center gap-3"
-            >
-              <a
-                href={`mailto:${PROFILE.email}`}
-                className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2 hover:bg-white/5"
-              >
-                <Mail size={18} /> Contact Me
-              </a>
-              <a
-                href={PROFILE.github}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2 hover:bg-white/5"
-              >
-                <Github size={18} /> GitHub
-              </a>
-              <a
-                href={PROFILE.leetcode}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2 hover:bg-white/5"
-              >
-                <ExternalLink size={18} /> LeetCode
-              </a>
-            </motion.div>
-
-            <div className="flex items-center gap-3 text-sm text-neutral-300">
-              <MapPin size={16} /> {PROFILE.location}
-            </div>
           </div>
         </div>
       </section>
 
+  
+
 
       {/* PROJECTS */}
-      <Section id="projects" title="Featured Projects">
+      <Section id="projects" title="Featured Projects" className="relative">
+        <div className="absolute right-0 top-0 w-64 h-64">
+          <Canvas>
+            <Suspense fallback={null}>
+              <ambientLight intensity={0.5} />
+              <InteractiveRubikCube />
+            </Suspense>
+          </Canvas>
+        </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {PROJECTS.map((p, idx) => (
             <motion.article
@@ -404,8 +435,16 @@ export default function PortfolioApp() {
       </Section>
 
       {/* LEADERSHIP & ACHIEVEMENTS */}
-      <Section id="leadership" title="Leadership & Achievements">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+      <Section id="leadership" title="Leadership & Achievements" className="relative">
+        <div className="absolute left-0 w-64 h-64">
+          <Canvas>
+            <Suspense fallback={null}>
+              <ambientLight intensity={0.6} />
+              <SimpleWalkingMan scrollProgress={scrollProgress} />
+            </Suspense>
+          </Canvas>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 ml-72">
           <ul className="grid gap-2 text-neutral-200 list-disc pl-5">
             {LEADERSHIP.map((l, i) => (
               <li key={i}>{l}</li>
@@ -490,15 +529,3 @@ export default function PortfolioApp() {
     </div>
   );
 }
-
-// ----------------------
-// Tailwind base styles for preview (safe defaults)
-// ----------------------
-const style = document.createElement("style");
-style.innerHTML = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-  :root { color-scheme: dark; }
-  html { scroll-behavior: smooth; }
-  body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
-`;
-if (typeof document !== 'undefined') document.head.appendChild(style);
